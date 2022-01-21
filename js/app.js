@@ -1,10 +1,9 @@
-//***************проверка email****************************************************************************************/
+"use strict";
+//===========проверка email==============
 function email_test(input) {
 	return !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,8})+$/.test(input.value);
 }
-"use strict";
-
-//***********webP****************************************************************************/
+//==========webP=================
 function testWebP(callback) {
   var webP = new Image();
   webP.onload = webP.onerror = function () {
@@ -22,7 +21,7 @@ testWebP(function (support) {
 });
 
 
-//***************Меню ****************************************************************************************/
+// ======Меню==========================================
 const iconMenu = document.querySelector('.menu__icon');
 const menuBody = document.querySelector('.menu__body');
 const logo = document.querySelector('.header__logo');
@@ -39,7 +38,7 @@ if (iconMenu) {
   });
 }
 
-// Прокрутка при клике 
+// Прокрутка при клике на пункты меню
 if (menuLinks.length > 0) {
   menuLinks.forEach(menuLink => {
     menuLink.addEventListener("click", onMenuLinkClick);
@@ -98,7 +97,7 @@ function menuOnScroll() {
   }
 
 }
-//***************анимация****************************************************************************************/
+//=============анимация==============================================
 const animItems = document.querySelectorAll('._anim-items');
 const header = document.querySelector('.header');
 
@@ -141,59 +140,75 @@ if (animItems.length > 0) {
     animOnScroll();
   }, 300);
 }
-// *********************************Работа с формой*****************************
-let form = document.getElementById('form');
+// ====================Работа с формой=========================
+const form = document.getElementById('form');
 
-if(form) {
-  let formSendedBody = document.querySelector('.form__sended-body');
-  let formSendedBtn = document.querySelector('.form__sended-btn');
-  let btnUp = document.querySelector('.button-up');
-  let textMessage = document.getElementById('formMessage');
-  let popupMessage = document.querySelector('.popup-message');
-  let closeMessage = document.querySelectorAll('.popup-close');
+if (form) {
+  const formSendedBody = document.querySelector('.form__sended-body');
+  const formSendedBtn = document.querySelector('.form__sended-btn');
+  const btnUp = document.querySelector('.button-up');
+  const textMessage = document.getElementById('formMessage');
+  const formСount = document.querySelector('.form__count');
+  const popupMessage = document.querySelector('.popup-message');
+  const closeMessage = document.querySelectorAll('.popup-close');
+  const textContainers = document.querySelectorAll('.text-container');
 
   // редактирование текстовых полей
-  form.addEventListener('click', (e) => {
-    let textContainer = e.target.closest('.text-container');
-    let tag = e.target.tagName;
-
-    if (textContainer && (tag == "INPUT" || tag =='TEXTAREA')) {
-
-      let inputTarget = e.target;
-      let labelTarget = textContainer.getElementsByTagName('label')[0];
-
-      labelTarget.classList.add('change');
-
-      inputTarget.addEventListener('blur', () => {
-        if (inputTarget.value == '') {
-          labelTarget.classList.remove('change');
-        }
-      });
-
-    }
-  });
-
-  textMessage.addEventListener('input', countMessage);
-
-  // вывод количества символов в строке
-  function countMessage(input) {
-    let textLength = input.target.value.length;
-    let formСount = document.querySelector('.form__count');
-    formСount.textContent = textLength;
+  for (const item of textContainers) {
+    item.addEventListener('click', inputClick);
   }
 
-  // сообщение об ошибке
-  function addErrorMessage(elem, html) {
-    let message = document.createElement('div');
-    message.className = "form__message-error";
-    message.innerHTML = html;
-    message.style.width = '100%';
-    elem.after(message);
-    message.style.top = elem.offsetHeight + 'px';
-    message.style.left = 0;
-    elem.addEventListener('input', () => {
-      message.remove();
-    });
+  function inputClick(e) {
+    let inputTarget = e.target;
+    if (inputTarget.tagName == "INPUT" || inputTarget.tagName == 'TEXTAREA') {
+
+      let labelTarget = this.getElementsByTagName('label')[0];
+      if (labelTarget) {
+        labelTarget.classList.add('change');
+        inputTarget.addEventListener('blur', () => {
+          if (inputTarget.value == '') {
+            labelTarget.classList.remove('change');
+          }
+        });
+      }
+    }
+  }
+
+  // вывод количества символов в строке
+  textMessage.addEventListener('input', (e) => {
+    formСount.textContent = e.target.value.length;
+  });
+
+  // отправка формы
+  form.addEventListener('submit', formSend);
+
+  async function formSend(e) {
+    e.preventDefault();
+    let error = formValidate(form);
+    let formData = new FormData(form);
+
+    if (error === 0) {
+
+      let response = await fetch('sendmail.php', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        let result = await response.json();
+
+        if (result.status == 'ok') {
+          form.classList.add('sended');
+          formSendedBody.classList.add('sended');
+          btnUp.classList.add('sended');
+          formReset(form);
+        } else {
+          showSending(`${result.message} Причина ошибки: ${result.status}`);
+        }
+      } else {
+        showSending(`Ошибка при отправке сообщения. Статус ошибки: ${response.status}`);
+      }
+    }
   }
 
   // проверка формы перед отправкой
@@ -222,43 +237,25 @@ if(form) {
     return error;
   }
 
-  // отправка формы
-  form.addEventListener('submit', formSend);
-
-  async function formSend(e) {
-    e.preventDefault();
-    let error = formValidate(form);
-    let formData = new FormData(form);
-
-    if (error === 0) {
-
-      let response = await fetch('sendmail.php', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.ok) {
-        let result = await response.json();
-
-        if (result.status == 'ok') {
-          form.classList.add('sended');
-          formSendedBody.classList.add('sended');
-          btnUp.classList.add('sended'); 
-          formReset(form);
-        } else {
-          showSending(`${result.message} Причина ошибки: ${result.status}`);
-        }
-      } else {
-        showSending(`Ошибка при отправке сообщения. Статус ошибки: ${response.status}`);
-      }
-    }
+  // сообщение об ошибке
+  function addErrorMessage(elem, html) {
+    let message = document.createElement('div');
+    message.className = "form__message-error";
+    message.innerHTML = html;
+    message.style.width = '100%';
+    elem.after(message);
+    message.style.top = elem.offsetHeight + 'px';
+    message.style.left = 0;
+    elem.addEventListener('input', () => {
+      message.remove();
+    });
   }
 
   // очистка формы
   function formReset(form) {
     form.reset();
     document.querySelector('.form__count').textContent = '0';
-    let itemsChange = document.querySelectorAll('.change');
+    let itemsChange = form.querySelectorAll('.change');
     for (const item of itemsChange) {
       item.classList.remove('change');
     }
